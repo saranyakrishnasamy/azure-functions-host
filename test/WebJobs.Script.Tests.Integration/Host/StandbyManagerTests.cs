@@ -98,6 +98,12 @@ namespace Microsoft.Azure.WebJobs.Script.Tests
             Assert.Equal(2, logLines.Count(p => p.Contains("Executed 'Functions.WarmUp' (Succeeded")));
             Assert.Equal(1, logLines.Count(p => p.Contains("Starting host specialization")));
             Assert.Equal(3, logLines.Count(p => p.Contains($"Starting Host (HostId={_expectedHostId}")));
+            Assert.Equal(3, logLines.Count(p => p.Contains($"Loading functions metadata")));
+            Assert.Equal(2, logLines.Count(p => p.Contains($"1 functions loaded")));
+            Assert.Equal(1, logLines.Count(p => p.Contains($"0 functions loaded")));
+            Assert.Equal(1, logLines.Count(p => p.Contains($"Loading proxies metadata")));
+            Assert.Equal(1, logLines.Count(p => p.Contains("Initializing Azure Function proxies")));
+            Assert.Equal(1, logLines.Count(p => p.Contains($"0 proxies loaded")));       
             Assert.Contains("Generating 0 job function(s)", logLines);
 
             // Verify that the internal cache has reset
@@ -182,6 +188,9 @@ namespace Microsoft.Azure.WebJobs.Script.Tests
             Assert.Equal(1, logLines.Count(p => p.Contains("Triggering specialization")));
             Assert.Equal(1, logLines.Count(p => p.Contains("Starting host specialization")));
             Assert.Equal(3, logLines.Count(p => p.Contains($"Starting Host (HostId={sanitizedMachineName}")));
+            Assert.Equal(1, logLines.Count(p => p.Contains($"Loading proxies metadata")));
+            Assert.Equal(1, logLines.Count(p => p.Contains("Initializing Azure Function proxies")));
+            Assert.Equal(1, logLines.Count(p => p.Contains($"0 proxies loaded")));
             Assert.Contains("Node.js HttpTrigger function invoked.", logLines);
 
             // verify cold start log entry
@@ -199,6 +208,12 @@ namespace Microsoft.Azure.WebJobs.Script.Tests
         {
             var httpConfig = new HttpConfiguration();
             var uniqueTestRootPath = Path.Combine(_testRootPath, testDirName, Guid.NewGuid().ToString());
+            var scriptRootPath = Path.Combine(uniqueTestRootPath, "wwwroot");
+
+            FileUtility.EnsureDirectoryExists(scriptRootPath);
+            string proxyConfigPath = Path.Combine(scriptRootPath, "proxies.json");
+            File.WriteAllText(proxyConfigPath, "{}");
+            await TestHelpers.Await(() => File.Exists(proxyConfigPath));
 
             _loggerProvider = new TestLoggerProvider();
 
@@ -232,11 +247,10 @@ namespace Microsoft.Azure.WebJobs.Script.Tests
                         o.IsSelfHost = true;
                         o.LogPath = Path.Combine(uniqueTestRootPath, "logs");
                         o.SecretsPath = Path.Combine(uniqueTestRootPath, "secrets");
-                        o.ScriptPath = _expectedScriptPath = Path.Combine(uniqueTestRootPath, "wwwroot");
+                        o.ScriptPath = _expectedScriptPath = scriptRootPath;
                     });
 
                     c.AddSingleton<IEnvironment>(_ => environment);
-
                     c.AddSingleton<IConfigureBuilder<ILoggingBuilder>>(new DelegatedConfigureBuilder<ILoggingBuilder>(b => b.AddProvider(_loggerProvider)));
                 });
 
