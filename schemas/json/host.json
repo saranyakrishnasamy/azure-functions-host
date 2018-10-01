@@ -3,7 +3,7 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
 
     "type": "object",
-    "version":"2.0"
+    "version":"2.0",
          "properties": {
         "functions": {
             "description": "The list of functions the host should load.",
